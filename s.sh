@@ -2,75 +2,80 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# Ubuntu 20.04 LAMP Server Kurulumu
-# Çalıştırma: bash install_lamp_ubuntu20.sh
-# Bu betik, hata durumunda otomatik olarak duracaktır.
+# Ubuntu 20.04 LAMP Installation Script
+# Run without sudo (as root or with sudo) - bash install_lamp.sh
+# Script auto terminates on errors
 
 export DEBIAN_FRONTEND=noninteractive
 
-echo -e "\e[96m PPA Depoları Ekleniyor  \e[39m"
+echo -e "\e[96m Adding PPA for Apache and PHP \e[39m"
+# Adding the PPA repositories for Apache and PHP
 sudo add-apt-repository -y ppa:ondrej/apache2
 sudo add-apt-repository -y ppa:ondrej/php
 sudo apt-get update
 
-echo -e "\e[96m Apache Kuruluyor  \e[39m"
+echo -e "\e[96m Installing Apache2 \e[39m"
+# Install Apache2 web server
 sudo apt-get -y install apache2
 
 INSTALL_PHP_VER=${1:-8.3}
 
-echo -e "\e[96m PHP 8.3 Kuruluyor \e[39m"
-sudo apt-get -y install "php8.3-cli" "libapache2-mod-php8.3"
+echo -e "\e[96m Installing PHP - ${INSTALL_PHP_VER} \e[39m"
+# Install PHP and necessary modules
+sudo apt-get -y install "php${INSTALL_PHP_VER}-cli" "libapache2-mod-php${INSTALL_PHP_VER}"
 
+# Installing common PHP extensions
 sudo apt-get -y install curl zip unzip
+echo -e "\e[96m Installing PHP extensions for ${INSTALL_PHP_VER} \e[39m"
+sudo apt-get -y install php${INSTALL_PHP_VER}-curl php${INSTALL_PHP_VER}-ctype php${INSTALL_PHP_VER}-uuid \
+php${INSTALL_PHP_VER}-pgsql php${INSTALL_PHP_VER}-sqlite3 php${INSTALL_PHP_VER}-gd \
+php${INSTALL_PHP_VER}-imap php${INSTALL_PHP_VER}-mysql php${INSTALL_PHP_VER}-mbstring php${INSTALL_PHP_VER}-iconv \
+php${INSTALL_PHP_VER}-xml php${INSTALL_PHP_VER}-zip php${INSTALL_PHP_VER}-bcmath php${INSTALL_PHP_VER}-soap php${INSTALL_PHP_VER}-gettext \
+php${INSTALL_PHP_VER}-intl php${INSTALL_PHP_VER}-readline \
+php${INSTALL_PHP_VER}-msgpack php${INSTALL_PHP_VER}-igbinary php${INSTALL_PHP_VER}-ldap \
+php${INSTALL_PHP_VER}-redis php${INSTALL_PHP_VER}-grpc
 
-echo -e "\e[96m PHP Uzantıları Kuruluyor \e[39m"
-sudo apt-get -y install php8.3-cli php8.3-curl php8.3-ctype php8.3-uuid \
-php8.3-pgsql php8.3-sqlite3 php8.3-gd \
-php8.3-imap php8.3-mysql php8.3-mbstring php8.3-iconv \
-php8.3-xml php8.3-zip php8.3-bcmath php8.3-soap php8.3-gettext \
-php8.3-intl php8.3-readline \
-php8.3-msgpack php8.3-igbinary php8.3-ldap \
-php8.3-redis php8.3-grpc
+# Enabling PHP module for Apache
+sudo phpenmod curl
 
-# Apache modülleri etkinleştiriliyor
+# Enable Apache modules
+echo -e "\e[96m Enabling Apache modules \e[39m"
 sudo a2enmod rewrite
 sudo a2enmod ssl
 sudo a2enmod headers
-sudo a2enmod "php8.3"
+sudo a2enmod "php${INSTALL_PHP_VER}"
 
-echo -e "\e[96m Apache Yeniden Başlatılıyor \e[39m"
+echo -e "\e[96m Restarting Apache server to apply changes \e[39m"
+# Restart Apache to reflect all changes
 sudo service apache2 restart
 
-# Composer kurulumu
-echo -e "\e[96m Composer Kuruluyor \e[39m"
+# Install Composer (PHP dependency manager)
+echo -e "\e[96m Installing Composer \e[39m"
 curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --force --filename=composer
 
-# MySQL Kurulumu
-echo -e "\e[96m MySQL İstemcisi Kuruluyor \e[39m"
-sudo apt install -y mysql-client
-
-echo -e "\e[96m MySQL Sunucusu Kuruluyor \e[39m"
-sudo apt install -y mysql-server
-
-# PHP ve Apache versiyon kontrolü
-echo -e "\e[96m PHP Versiyon Kontrolü \e[39m"
-php -v
-
-echo -e "\e[96m Apache Versiyon Kontrolü \e[39m"
-apachectl -v
-
-echo -e "\e[96m PHP Çalışıyor mu Test Ediliyor \e[39m"
-php -r 'echo "\nPHP kurulumu başarılı!\n";'
-
-# Composer izinleri düzeltiliyor
+# Fix permissions for Composer directory
 mkdir -p ~/.composer
 sudo chown -R "$USER" "$HOME/.composer"
 
-# Composer versiyon kontrolü
-echo -e "\e[96m Composer Versiyon Kontrolü \e[39m"
+echo -e "\e[96m Installing MySQL client and server \e[39m"
+# Install MySQL client and server
+sudo apt install -y mysql-client
+sudo apt install -y mysql-server
+
+# Check PHP version
+php -v
+
+# Check Apache version
+apachectl -v
+
+# Test PHP setup
+php -r 'echo "\nYour PHP installation is working fine.\n";'
+
+# Check Composer version
 composer --version
 
-echo -e "\e[92m Kurulum Tamamlandı! Apache'yi test etmek için: http://localhost/ \e[39m"
+# Final message
+echo -e "\e[92m Open http://localhost/ to check if Apache is working \e[39m"
 
-# Gereksiz dosyalar temizleniyor
+# Clean up package cache
 sudo apt-get clean
